@@ -32,7 +32,7 @@ const handler = async (msg, { conn }) => {
     console.error("[menu] Error leyendo setmenu.json:", e);
   }
 
-  const caption = `DE҈M҉O҉N҉S҉ NO҉V҉A҉ CR҉O҉N҉H҉O҉S҉
+  const caption = `*Hola soy Xtayrusx*
 
 ┏━°⌜ 赤い糸 ⌟°━┓
 ꧁༺Gᴇɴᴇʀᴀʟ༻꧂
@@ -169,7 +169,7 @@ const handler = async (msg, { conn }) => {
 `.trim();
 
   await conn.sendMessage2(chatId, {
-    image: { url: "https://cdn.russellxz.click/978d6be2.jpeg" },
+    video: { url: "https://cdn.russellxz.click/d2f2ff66.mp4" },
     gifPlayback: true,
     caption
   }, msg);
