@@ -77,7 +77,7 @@ const handler = async (msg, { conn, args }) => {
     const extraMsg = (args || []).join(" ");
 
     let finalMsg  = `╭─⌈ *✨Invocación Divina✨* ⌋──╮\n`;
-        finalMsg += `│ 🐉 *✧DE҈M҉O҉N҉S҉ NO҉V҉A҉ CR҉O҉N҉H҉O҉S҉*\n`;
+        finalMsg += `│ 🐉 *✧Darius-Bot*\n`;
         finalMsg += `│ ☠️ *✧ Invocados por el Rey Divino✧:* @${senderDigits}\n`;
     if (extraMsg.length > 0) {
         finalMsg += `│ 💬 *Mensaje:* ${extraMsg}\n`;
@@ -88,7 +88,7 @@ const handler = async (msg, { conn, args }) => {
 
     // 🔥 Aquí enviamos el video como GIF automático
     await conn.sendMessage(chatId, {
-      video: { url: "https://cdn.russellxz.click/6574d078.mp4" },
+      video: { url: "https://cdn.russellxz.click/f107af1b.mp4" },
       gifPlayback: true, // ✅ se reproduce en bucle tipo GIF
       caption: finalMsg,
       mentions: mentionIds
