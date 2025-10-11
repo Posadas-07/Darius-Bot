@@ -145,7 +145,6 @@ const handler = async (msg, { conn }) => {
 𒈒 *${pref}parejas / ship*
 𒈒 *${pref}kiss / topkiss*
 𒈒 *${pref}slap / topslap*
-𒈒 *${pref}menurpg*
 𒈒 *${pref}puta @usuario*
 𒈒 *${pref}puto @usuario*
 𒈒 *${pref}peruano @usuario*
