@@ -18,7 +18,7 @@ const handler = async (msg, { conn }) => {
 
   const total = todosLosComandos.length;
 
-  const caption = ` DE҈M҉O҉N҉S҉ NO҉V҉A҉ CR҉O҉N҉H҉O҉S҉
+  const caption = ` xtayrusx bot
 
 🔧 *Total comandos activos:* ${total}
 🔑 *Prefijo actual:* ${prefijo}
@@ -26,11 +26,11 @@ const handler = async (msg, { conn }) => {
 📦 *Lista de comandos:*
 ${todosLosComandos.map(c => `➤ ${prefijo}${c}`).join("\n")}
   
-💫 *Demons-Bot WhatsApp*
+💫 *xtayrusx WhatsApp*
 `.trim();
 
   return conn.sendMessage2(chatId, {
-    image: { url: "https://cdn.russellxz.click/94c1678e.jpeg" },
+    video: { url: "https://cdn.russellxz.click/d2f2ff66.mp4" },
     caption
   }, msg);
 };
