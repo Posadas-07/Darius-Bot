@@ -1,10 +1,8 @@
-// plugins/warn.js
 const fs = require("fs");
 const path = require("path");
 
 const DIGITS = (s = "") => String(s).replace(/\D/g, "");
 
-/** Normaliza: si un participante viene como @lid y trae .jid (real), usa el real */
 function lidParser(participants = []) {
   try {
     return participants.map(v => ({
@@ -17,7 +15,6 @@ function lidParser(participants = []) {
   }
 }
 
-/** Verifica si un NÚMERO es admin del chat (sirve en grupos LID y NO-LID) */
 async function isAdminByNumber(conn, chatId, number) {
   try {
     const meta = await conn.groupMetadata(chatId);
@@ -60,7 +57,7 @@ const handler = async (msg, { conn, command }) => {
   const isAdmin = await isAdminByNumber(conn, chatId, senderNo);
   if (!isAdmin && !isOwner && !fromMe) {
     return conn.sendMessage(chatId, {
-      text: "🚫 *Permiso denegado*\nSolo los *admins* o el *dueño del bot* pueden usar este comando.",
+      text: "🚫 *No tienes permisos para usar este comando.*\nSolo los *admins* o el *dueño del bot* pueden hacerlo.",
     }, { quoted: msg });
   }
 
@@ -84,12 +81,19 @@ const handler = async (msg, { conn, command }) => {
     }, { quoted: msg });
   }
 
-  const warnPath = path.resolve("./database/warns.json");
-  const warnData = fs.existsSync(warnPath) ? JSON.parse(fs.readFileSync(warnPath)) : {};
+  // === BASE DE DATOS ===
+  const dbFolder = path.resolve("./database");
+  const warnPath = path.join(dbFolder, "advertencias.json");
+
+  if (!fs.existsSync(dbFolder)) fs.mkdirSync(dbFolder, { recursive: true });
+  if (!fs.existsSync(warnPath)) fs.writeFileSync(warnPath, JSON.stringify({}, null, 2));
+
+  const warnData = JSON.parse(fs.readFileSync(warnPath));
+
   if (!warnData[chatId]) warnData[chatId] = {};
   if (!warnData[chatId][target]) warnData[chatId][target] = 0;
 
-  // === APLICAR ADVERTENCIA ===
+  // === AGREGAR ADVERTENCIA ===
   if (command === "advertencia") {
     warnData[chatId][target] += 1;
     const totalWarns = warnData[chatId][target];
@@ -97,13 +101,12 @@ const handler = async (msg, { conn, command }) => {
 
     if (totalWarns >= 3) {
       await conn.sendMessage(chatId, {
-        text:
-`❌ *Usuario expulsado por acumulación de advertencias.*
+        text: 
+`❌ *El usuario ha sido expulsado por acumulación de advertencias.*
 
-╭─⬣「 *Expulsado* 」⬣
-│ 👤 Usuario: @${targetNum}
-│ ⚠️ Advertencias: ${totalWarns}/3
-╰─⬣`,
+👤 *Usuario:* @${targetNum}
+⚠️ *Advertencias:* ${totalWarns}/3
+🚪 *Acción:* Expulsado del grupo.`,
         mentions: [target]
       }, { quoted: msg });
 
@@ -113,12 +116,11 @@ const handler = async (msg, { conn, command }) => {
     } else {
       await conn.sendMessage(chatId, {
         text:
-`⚠️ *Advertencia aplicada.*
+`⚠️ *Advertencia registrada.*
 
-╭─⬣「 *Advertencia* 」⬣
-│ 👤 Usuario: @${targetNum}
-│ ⚠️ Advertencias: ${totalWarns}/3
-╰─⬣`,
+👤 *Usuario:* @${targetNum}
+📊 *Advertencias:* ${totalWarns}/3
+🕐 *Mantén el orden en el grupo.*`,
         mentions: [target]
       }, { quoted: msg });
     }
@@ -126,17 +128,9 @@ const handler = async (msg, { conn, command }) => {
 
   // === QUITAR ADVERTENCIA ===
   if (command === "quitaradvertencia") {
-    // 🔒 Mismo chequeo de admin que en "advertencia"
-    const isAdmin = await isAdminByNumber(conn, chatId, senderNo);
-    if (!isAdmin && !isOwner && !fromMe) {
-      return conn.sendMessage(chatId, {
-        text: "🚫 *Permiso denegado*\nSolo los *admins* o el *dueño del bot* pueden quitar advertencias.",
-      }, { quoted: msg });
-    }
-
     if (warnData[chatId][target] === 0) {
       return conn.sendMessage(chatId, {
-        text: `✅ *El usuario no tiene advertencias que quitar.*`,
+        text: `✅ *El usuario no tiene advertencias activas.*`,
       }, { quoted: msg });
     }
 
@@ -148,10 +142,9 @@ const handler = async (msg, { conn, command }) => {
       text:
 `🗑️ *Advertencia eliminada.*
 
-╭─⬣「 *Quitar advertencia* 」⬣
-│ 👤 Usuario: @${targetNum}
-│ ⚠️ Advertencias: ${totalWarns}/3
-╰─⬣`,
+👤 *Usuario:* @${targetNum}
+📊 *Advertencias restantes:* ${totalWarns}/3
+✨ *Sigue cumpliendo las normas.*`,
       mentions: [target]
     }, { quoted: msg });
   }
