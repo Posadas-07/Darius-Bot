@@ -559,8 +559,11 @@ try {
 }
 // === FIN DE LÓGICA ===  
 
-// === ⛔ INICIO LÓGICA ANTIS STICKERS (bloqueo tras 3 strikes en 15s) ===
+// === ⚠️ INICIO LÓGICA ANTIS STICKERS (versión rediseñada) ===
 try {
+  const fs = require("fs");
+  const path = require("path");
+
   const chatId = m.key.remoteJid;
   const fromMe = m.key.fromMe;
   const isGroup = chatId.endsWith("@g.us");
@@ -572,80 +575,111 @@ try {
 
     if (antisActivo == 1) {
       const user = m.key.participant || m.key.remoteJid;
-      const now = Date.now();
+      const DIGITS = s => String(s || "").replace(/\D/g, "");
+      const userNum = DIGITS(user);
 
+      // === Control de spam de stickers ===
+      const now = Date.now();
       if (!global.antisSpam) global.antisSpam = {};
       if (!global.antisSpam[chatId]) global.antisSpam[chatId] = {};
-      if (!global.antisBlackList) global.antisBlackList = {};
 
       const userData = global.antisSpam[chatId][user] || {
         count: 0,
         last: now,
-        warned: false,
-        strikes: 0
+        warnedRecently: false
       };
 
       const timePassed = now - userData.last;
-
-      if (timePassed > 15000) {
-        userData.count = 1;
-        userData.last = now;
-        userData.warned = false;
-        userData.strikes = 0;
-
-        if (global.antisBlackList[chatId]?.includes(user)) {
-          global.antisBlackList[chatId] = global.antisBlackList[chatId].filter(u => u !== user);
-        }
-      } else {
-        userData.count++;
-        userData.last = now;
+      if (timePassed > 60000) { // 60 segundos sin stickers => reiniciar
+        userData.count = 0;
+        userData.warnedRecently = false;
       }
 
+      userData.count++;
+      userData.last = now;
       global.antisSpam[chatId][user] = userData;
 
-      if (userData.count === 5) {
+      // === Aviso tras 2 stickers ===
+      if (userData.count === 2 && !userData.warnedRecently) {
+        userData.warnedRecently = true;
+
         await sock.sendMessage(chatId, {
-          text: `⚠️ @${user.split("@")[0]} has enviado *5 stickers*. Espera *15 segundos* o si envías *3 más*, serás eliminado.`,
+          text: 
+`⚠️ *Advertencia preventiva*
+
+👤 *Usuario:* @${userNum}
+🧩 *Acción:* Enviaste 2 stickers seguidos.
+⏱️ *Espera:* 60 segundos antes de enviar otro.
+💢 Si envías 1 más, recibirás *advertencia oficial (⚠️)*
+
+*3 advertencias = expulsión automática del grupo.*`,
           mentions: [user]
         });
-        userData.warned = true;
-        userData.strikes = 0;
+
+        // Reiniciar contador luego de 60 segundos
+        setTimeout(() => {
+          if (global.antisSpam[chatId]?.[user]) {
+            global.antisSpam[chatId][user].count = 0;
+            global.antisSpam[chatId][user].warnedRecently = false;
+          }
+        }, 60000);
       }
 
-      if (userData.count > 5 && timePassed < 15000) {
-        if (!global.antisBlackList[chatId]) global.antisBlackList[chatId] = [];
-        if (!global.antisBlackList[chatId].includes(user)) {
-          global.antisBlackList[chatId].push(user);
-        }
+      // === Si ignora el aviso y sigue enviando stickers ===
+      if (userData.count >= 3 && userData.warnedRecently) {
+        userData.count = 0;
+        userData.warnedRecently = false;
 
-        await sock.sendMessage(chatId, {
-          delete: {
-            remoteJid: chatId,
-            fromMe: false,
-            id: m.key.id,
-            participant: user
-          }
-        });
+        // === Ruta base de datos ===
+        const dbFolder = path.resolve("./database");
+        const warnPath = path.join(dbFolder, "advertencias.json");
 
-        userData.strikes++;
+        if (!fs.existsSync(dbFolder)) fs.mkdirSync(dbFolder, { recursive: true });
+        if (!fs.existsSync(warnPath)) fs.writeFileSync(warnPath, JSON.stringify({}, null, 2));
 
-        if (userData.strikes >= 3) {
+        const warnData = JSON.parse(fs.readFileSync(warnPath));
+        if (!warnData[chatId]) warnData[chatId] = {};
+        if (!warnData[chatId][user]) warnData[chatId][user] = 0;
+
+        warnData[chatId][user] += 1;
+        const totalWarns = warnData[chatId][user];
+        fs.writeFileSync(warnPath, JSON.stringify(warnData, null, 2));
+
+        // === Expulsión o advertencia ===
+        if (totalWarns >= 3) {
           await sock.sendMessage(chatId, {
-            text: `❌ @${user.split("@")[0]} fue eliminado por ignorar advertencias y abusar de stickers.`,
+            text:
+`❌ *Usuario expulsado por exceso de stickers.*
+
+👤 *Usuario:* @${userNum}
+⚠️ *Advertencias:* ${totalWarns}/3
+🚪 *Acción:* Expulsado del grupo.`,
             mentions: [user]
           });
+
           await sock.groupParticipantsUpdate(chatId, [user], "remove");
-          delete global.antisSpam[chatId][user];
+
+          warnData[chatId][user] = 0;
+          fs.writeFileSync(warnPath, JSON.stringify(warnData, null, 2));
+        } else {
+          await sock.sendMessage(chatId, {
+            text:
+`⚠️ *Advertencia automática aplicada.*
+
+👤 *Usuario:* @${userNum}
+🧩 *Motivo:* Ignorar aviso tras 2 stickers
+📊 *Advertencias acumuladas:* ${totalWarns}/3
+💡 *Evita el uso excesivo de stickers o serás expulsado.*`,
+            mentions: [user]
+          });
         }
       }
-
-      global.antisSpam[chatId][user] = userData;
     }
   }
 } catch (e) {
   console.error("❌ Error en lógica antis stickers:", e);
 }
-// === ✅ FIN LÓGICA ANTIS STICKERS ===
+// === ✅ FIN LÓGICA ANTIS STICKERS (versión rediseñada) ===
 
 
   // === ✅ INICIO CONTEO DE MENSAJES EN setwelcome.json ===
